@@ -134,7 +134,7 @@ function buildLegend(id){
     fh += '<span class="dot" style="background:'+v+'"></span>'+k+'（圆形）';
   }
   fh += '<br/><span style="margin-right:12px">事件标注：</span>';
-  fh += '<span style="color:#d32f2f">▲ 对得上（涨，红）</span>　<span style="color:#2e7d32">▼ 对得上（跌，绿）</span>　<span style="color:#6b7280">彩色竖虚线=对不上股价的事件</span>';
+  fh += '<span style="color:#d32f2f">↗ 红箭头=对得上（涨）</span>　<span style="color:#2e7d32">↘ 绿箭头=对得上（跌）</span>　<span style="color:#6b7280">箭头从股价出发、文字放远端；彩色竖虚线=对不上股价的事件</span>';
   fh += '<br/><span style="margin-right:12px">虚线颜色=事件类别：</span>';
   for (const [k,v] of Object.entries(D.catColor)) {
     fh += '<span class="dot" style="background:'+v+'"></span>'+k+' ';
@@ -202,21 +202,36 @@ function buildCompanyChart(domId, company, col, withEvents){
                distance:12+(e.level||0)*20}
       }))
     };
-    // 2) 对得上股价的事件：股价上方画小三角（涨=红▲朝上 / 跌=绿▼朝下），三角上方标注事件名
+    // 2) 对得上股价的事件：从股价线上的点画一条长箭头指向远处，文字放在箭头末端
+    //     涨=红箭头指向右上，跌=绿箭头指向右下；层级 layer 让箭头长度/水平位置错开，避免文字重叠
     arrowSeries = [{
-      name:'事件-股价对应', type:'scatter', silent:true, z:12,
-      data:matched.map(e=>({
-        value:[e.date, e.arrowY, e.short, e.dir, e.close],
-        symbol:'triangle',
-        symbolRotate:e.dir>=0?0:180,
-        symbolSize:14,
-        itemStyle:{color:e.dir>=0?'#d32f2f':'#2e7d32',opacity:.95,borderColor:'#fff',borderWidth:1},
-        label:{show:true,position:'top',distance:5,
-               formatter:e.short,fontSize:10,fontWeight:'bold',
-               color:e.dir>=0?'#d32f2f':'#2e7d32',
-               backgroundColor:'rgba(255,255,255,.9)',borderRadius:3,padding:[2,4]}
-      })),
-      tooltip:{show:false}
+      name:'事件-股价对应', type:'custom', silent:true, z:12, clip:false,
+      renderItem:function(params, api){
+        const date=api.value(0), close=api.value(1), dir=api.value(2), layer=api.value(3)||0;
+        const txt=api.value(4)||'';
+        const p0=api.coord([date, close]);
+        if(!p0||isNaN(p0[0])) return;
+        const col=dir>=0?'#d32f2f':'#2e7d32';
+        const sign=dir>=0?-1:1;            // 涨向上、跌向下
+        const len=46+layer*30;             // 箭头长度随层级递增
+        const dx=12+layer*6;               // 水平错开
+        const p1=[p0[0]+dx, p0[1]+sign*len];
+        const ang=Math.atan2(p1[1]-p0[1], p1[0]-p0[0]);
+        const hl=13, hw=6;
+        const bx=p1[0]-hl*Math.cos(ang), by=p1[1]-hl*Math.sin(ang);
+        const ah=[bx+hw*Math.sin(ang), by-hw*Math.cos(ang)];
+        const ah2=[bx-hw*Math.sin(ang), by+hw*Math.cos(ang)];
+        const ty=dir>=0? p1[1]-6 : p1[1]+6;
+        return {type:'group', children:[
+          {type:'line', shape:{x1:p0[0],y1:p0[1],x2:bx,y2:by}, style:{stroke:col,lineWidth:2.6,opacity:.92}},
+          {type:'polygon', shape:{points:[[p1[0],p1[1]],ah,ah2]}, style:{fill:col}},
+          {type:'text', style:{text:txt,x:p1[0],y:ty,fill:col,font:'bold 10px sans-serif',
+             textAlign:'center',textVerticalAlign:dir>=0?'bottom':'top',
+             backgroundColor:'rgba(255,255,255,.92)',borderColor:col,borderWidth:1,borderRadius:3,padding:[2,4]}}
+        ]};
+      },
+      encode:{x:0,y:1},
+      data:matched.map(e=>[e.date, e.close, e.dir, e.labelLayer||0, e.short])
     }];
   }
   const series = [priceLine, {
