@@ -212,11 +212,10 @@ function buildCompanyChart(domId, company, col, withEvents){
         const p0=api.coord([date, close]);
         if(!p0||isNaN(p0[0])) return;
         const col=dir>=0?'#d32f2f':'#2e7d32';
-        // 扇形发散：涨基础角 -160°（左上），跌基础角 +20°（右下），每层转 42°
-        const base = dir>=0 ? -160 : 20;
-        const deg = base + layer*42;
+        // 统一朝一个方向（像参考图那样平行）：涨都指左上、跌都指左下；长度随层递增让文字错开
+        const deg = dir>=0 ? -140 : 145;
         const rad = deg*Math.PI/180;
-        const len = (dir>=0?62:52) + layer*22;
+        const len = 48 + layer*34;   // 同向平行，靠长度差把末端文字错开
         const p1=[p0[0]+len*Math.cos(rad), p0[1]+len*Math.sin(rad)];
         const ang=Math.atan2(p1[1]-p0[1], p1[0]-p0[0]);
         const hl=13, hw=6;
