@@ -258,7 +258,7 @@ function renderAnnual(){
         const isImp=x.seriesName==='进口量';
         s+='<br/>'+x.marker+x.seriesName+'：<b>'+qtyFmt(x.value,unit)+'</b>';
         const r=D.annual[y] && D.annual[y][p.name];
-        if(r){
+        if(r && y!=='2018'){  // 2018年无2017基数，同比无意义
           const yoy=isImp? r.iyoy : r.eyoy;
           const t=pctFmt(yoy);
           if(t!=null) s+=' <span style="color:'+(yoy>0?C_RED:(yoy<0?C_GREEN:'#666'))+'">同比 '+t+'</span>';
@@ -275,6 +275,7 @@ function renderAnnual(){
        label:{show:true,position:'top',distance:2,fontSize:9,
          formatter:pp=>{
            const y=years[pp.dataIndex];
+           if(y==='2018') return '';  // 2018年无2017基数，同比无意义
            const r=D.annual[y]&&D.annual[y][p.name];
            if(!r||r.imp==null) return '';
            const t=pctFmt(r.iyoy);
@@ -287,6 +288,7 @@ function renderAnnual(){
        label:{show:true,position:'top',distance:2,fontSize:9,
          formatter:pp=>{
            const y=years[pp.dataIndex];
+           if(y==='2018') return '';  // 2018年无2017基数，同比无意义
            const r=D.annual[y]&&D.annual[y][p.name];
            if(!r||r.exp==null) return '';
            const t=pctFmt(r.eyoy);
